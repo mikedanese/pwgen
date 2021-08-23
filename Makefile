@@ -2,13 +2,30 @@
 PLATFORMS=darwin linux windows
 ARCHITECTURES=amd64
 
-pwgen:
-	go build -o bin/pwgen
+SRC := pwgen.go
 
-release:
-	$(foreach GOOS, $(PLATFORMS),\
-	$(foreach GOARCH, $(ARCHITECTURES), $(shell export GOOS=$(GOOS); export GOARCH=$(GOARCH); go build -o bin/release/$(GOOS)/$(GOARCH)/pwgen)))
-	tar -cvzf  bin/release.tgz bin/release
+default: release
+
+define GEN_RULE
+bin/release/$(goos)/$(goarch)/%: $(SRC)
+	GOOS=$(goos) GOARCH=$(goarch) go build -o $$@ .
+endef
+
+$(foreach goos,$(PLATFORMS), \
+  $(foreach goarch,$(ARCHITECTURES), \
+    $(eval $(GEN_RULE)) \
+  ) \
+)
+
+bin/release.tgz: \
+  bin/release/linux/amd64/pwgen \
+  bin/release/darwin/amd64/pwgen \
+  bin/release/windows/amd64/pwgen.exe
+	tar -czf  bin/release.tgz bin/release
+
+release: bin/release.tgz
 	
+clean:
+	rm -rf bin
 
-.PHONY = pwgen release
+.PHONY = clean release
